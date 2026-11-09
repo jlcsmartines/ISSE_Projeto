@@ -103,7 +103,7 @@ td.id-col{color:var(--text);font-weight:500}
 .bar-track{flex:1;height:3px;background:var(--border-hi);border-radius:2px;overflow:hidden}
 .bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(.25,.46,.45,.94)}
 .cat-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
-.cat-nula{background:rgba(30,58,95,0.5);color:#60A5FA}
+.cat-nula, .cat-nao-segregada{background:rgba(30,58,95,0.5);color:#60A5FA}
 .cat-baixa{background:rgba(37,99,235,0.2);color:#93C5FD}
 .cat-media{background:rgba(245,158,11,0.15);color:#FCD34D}
 .cat-alta{background:rgba(239,68,68,0.15);color:#FCA5A5}
@@ -332,10 +332,10 @@ function fmtSize(b) {
   return b < 1048576 ? (b/1024).toFixed(1)+" KB" : (b/1048576).toFixed(1)+" MB";
 }
 function catClass(cat) {
-  return ({Nula:"nula",Baixa:"baixa","Média":"media",Alta:"alta"})[cat] || "nula";
+  return ({Nula:"nula","Não Segregada":"nula",Baixa:"baixa","Média":"media",Alta:"alta"})[cat] || "nula";
 }
 function catColor(cat) {
-  return ({Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"})[cat] || "#1E3A5F";
+  return ({Nula:"#1E3A5F","Não Segregada":"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"})[cat] || "#1E3A5F";
 }
 function setFeedback(msg, type="") {
   const el = document.getElementById("feedback");
@@ -405,17 +405,21 @@ processBtn.addEventListener("click", async () => {
 // ── Render upload ──
 function renderUploadResult(json) {
   const data = json.data;
-  const cats = {Nula:0,Baixa:0,"Média":0,Alta:0};
+  const cats = {"Não Segregada":0,Baixa:0,"Média":0,Alta:0};
   const issees = data.map(r => parseFloat(r.isse)||0);
-  data.forEach(r => { const c = r.categoria_isse; if (c in cats) cats[c]++; });
+  data.forEach(r => {
+    let c = r.categoria_isse;
+    if (c === "Nula") c = "Não Segregada";
+    if (c in cats) cats[c]++;
+  });
 
   // Stats
   const medio = (issees.reduce((a,b)=>a+b,0)/issees.length).toFixed(4);
   document.getElementById("statGrid").innerHTML =
-    statCard("ISSE Médio",  medio,     "")      +
-    statCard("Nula",        cats.Nula, "nula")  +
-    statCard("Baixa",       cats.Baixa,"baixa") +
-    statCard("Média/Alta",  cats["Média"]+cats.Alta, "alta");
+    statCard("ISSE Médio",      medio,                   "")      +
+    statCard("Não Segregada",   cats["Não Segregada"],   "nula")  +
+    statCard("Baixa",           cats.Baixa,              "baixa") +
+    statCard("Média/Alta",      cats["Média"]+cats.Alta, "alta");
 
   renderDonut(cats);
   renderBarChart(data);
@@ -431,7 +435,7 @@ function renderDonut(cats) {
   const canvas = document.getElementById("donutCanvas");
   const ctx    = canvas.getContext("2d");
   const total  = Object.values(cats).reduce((a,b)=>a+b,0) || 1;
-  const colors = {Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
+  const colors = {"Não Segregada":"#1E3A5F",Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
   const cx=60,cy=60,r=50,r2=32;
   ctx.clearRect(0,0,120,120);
   let angle = -Math.PI/2;
@@ -439,14 +443,14 @@ function renderDonut(cats) {
     const slice = (val/total)*Math.PI*2;
     ctx.beginPath(); ctx.moveTo(cx,cy);
     ctx.arc(cx,cy,r,angle,angle+slice);
-    ctx.fillStyle = colors[cat]; ctx.fill();
+    ctx.fillStyle = colors[cat] || "#1E3A5F"; ctx.fill();
     angle += slice;
   });
   ctx.beginPath(); ctx.arc(cx,cy,r2,0,Math.PI*2);
   ctx.fillStyle = "#0D1420"; ctx.fill();
   let legend = "";
   Object.entries(cats).forEach(([cat,val]) => {
-    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat]}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums">${val}</span></div>`;
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat] || '#1E3A5F'}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums">${val}</span></div>`;
   });
   document.getElementById("donutLegend").innerHTML = legend;
 }
@@ -501,8 +505,12 @@ function renderTable(data, cols) {
 // ── Dashboard ──
 function renderDashboard(json) {
   const data = json.data;
-  const cats = {Nula:0,Baixa:0,"Média":0,Alta:0};
-  data.forEach(r => { const c = r.categoria_isse; if (c in cats) cats[c]++; });
+  const cats = {"Não Segregada":0,Baixa:0,"Média":0,Alta:0};
+  data.forEach(r => {
+    let c = r.categoria_isse;
+    if (c === "Nula") c = "Não Segregada";
+    if (c in cats) cats[c]++;
+  });
   const issees = data.map(r => parseFloat(r.isse)||0);
   const medio  = (issees.reduce((a,b)=>a+b,0)/issees.length).toFixed(4);
 
@@ -535,7 +543,7 @@ function renderDashboard(json) {
       </div>
     </div>`;
 
-  const colors = {Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
+  const colors = {"Não Segregada":"#1E3A5F",Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
   const canvas = document.getElementById("dashDonut");
   const ctx    = canvas.getContext("2d");
   const total  = Object.values(cats).reduce((a,b)=>a+b,0)||1;
@@ -543,13 +551,13 @@ function renderDashboard(json) {
   Object.entries(cats).forEach(([cat,val]) => {
     const slice = (val/total)*Math.PI*2;
     ctx.beginPath(); ctx.moveTo(60,60); ctx.arc(60,60,50,angle,angle+slice);
-    ctx.fillStyle = colors[cat]; ctx.fill(); angle += slice;
+    ctx.fillStyle = colors[cat] || "#1E3A5F"; ctx.fill(); angle += slice;
   });
   ctx.beginPath(); ctx.arc(60,60,32,0,Math.PI*2); ctx.fillStyle="#0D1420"; ctx.fill();
 
   let legend = "";
   Object.entries(cats).forEach(([cat,val]) => {
-    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat]}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px">${val}</span></div>`;
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat] || '#1E3A5F'}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px">${val}</span></div>`;
   });
   document.getElementById("dashLegend").innerHTML = legend;
 
@@ -617,7 +625,7 @@ async function runCompare() {
     html += `<div class="compare-card">
       <div class="compare-name">${esc(m.municipio)}</div>
       <div class="compare-meta">${m.num_setores} setores analisados</div>
-      <div class="compare-isse" style="color:${m.isse_medio > 0.5191 ? '#EF4444' : '#60A5FA'}">${(m.isse_medio||0).toFixed(4)}</div>
+      <div class="compare-isse" style="color:${m.isse_medio >= 0.5 ? '#EF4444' : '#60A5FA'}">${(m.isse_medio||0).toFixed(4)}</div>
       <div class="compare-range">min ${(m.isse_min||0).toFixed(4)} · max ${(m.isse_max||0).toFixed(4)}</div>
       <div class="bar-chart">
         ${Object.entries(dist).map(([cat,n]) => `

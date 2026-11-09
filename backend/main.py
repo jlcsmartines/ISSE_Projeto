@@ -120,10 +120,10 @@ def comparar(municipios: str):
             "isse_min":     round(min(issees), 4) if issees else None,
             "isse_max":     round(max(issees), 4) if issees else None,
             "distribuicao": {
-                "Nula":  cats.count("Nula"),
-                "Baixa": cats.count("Baixa"),
-                "Média": cats.count("Média"),
-                "Alta":  cats.count("Alta"),
+                "Não Segregada": cats.count("Não Segregada") + cats.count("Nula"),
+                "Baixa":         cats.count("Baixa"),
+                "Média":         cats.count("Média"),
+                "Alta":          cats.count("Alta"),
             },
         })
 

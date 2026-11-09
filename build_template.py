@@ -162,14 +162,14 @@ def build_instrucoes(wb):
         r += 1
 
     r += 2
-    ws[f"A{r}"] = "Categorização do resultado"
+    ws[f"A{r}"] = "Categorização do resultado (Bastos Filho et al., 2019, p. 60)"
     ws[f"A{r}"].font = SECTION_FONT
     r += 1
     for label, cutoff in [
-        ("Nula Segregação Socioespacial",  "ISSE < 0,39"),
-        ("Baixa Segregação Socioespacial", "0,39 ≤ ISSE < 0,52"),
-        ("Média Segregação Socioespacial", "0,52 ≤ ISSE < 0,68"),
-        ("Alta Segregação Socioespacial",  "ISSE ≥ 0,68"),
+        ("Não Segregada",                  "ISSE < (Média - 1 Desvio-Padrão)"),
+        ("Baixa Segregação Socioespacial", "(Média - 1 Desvio-Padrão) ≤ ISSE < Média"),
+        ("Média Segregação Socioespacial", "Média ≤ ISSE ≤ (Média + 1 Desvio-Padrão)"),
+        ("Alta Segregação Socioespacial",  "ISSE > (Média + 1 Desvio-Padrão)"),
     ]:
         ws.cell(row=r, column=1, value=label).font = KEY_FONT
         ws.cell(row=r, column=2, value=cutoff).font = BODY_FONT

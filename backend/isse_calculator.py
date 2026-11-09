@@ -93,13 +93,31 @@ def calculate_isse(df: pd.DataFrame) -> pd.DataFrame:
 
     df["isse"] = ((se_score + ss_score + da_score) / 3).round(4)
 
-    df["categoria_isse"] = df["isse"].apply(
-        lambda v: (
-            "Nula" if v < 0.3912 else
-            "Baixa" if v < 0.5191 else
-            "Média" if v < 0.6761 else
-            "Alta"
-        )
-    )
+    # Categorização do ISSE conforme metodologia de Bastos Filho et al. (2019, p. 60)
+    # A categorização em 4 grupos baseia-se na média e no desvio-padrão do próprio índice na amostra:
+    # 1. Não Segregada: ISSE < (Média - 1 Desvio-Padrão)
+    # 2. Baixa Segregação: (Média - 1 Desvio-Padrão) <= ISSE < Média
+    # 3. Média Segregação: Média <= ISSE <= (Média + 1 Desvio-Padrão)
+    # 4. Alta Segregação: ISSE > (Média + 1 Desvio-Padrão)
+    mean_isse = df["isse"].mean()
+    std_isse = df["isse"].std(ddof=1)
+
+    if pd.isna(std_isse) or std_isse == 0:
+        df["categoria_isse"] = "Média"
+    else:
+        lo = mean_isse - std_isse
+        hi = mean_isse + std_isse
+
+        def _classificar(v):
+            if v < lo:
+                return "Não Segregada"
+            elif v < mean_isse:
+                return "Baixa"
+            elif v <= hi:
+                return "Média"
+            else:
+                return "Alta"
+
+        df["categoria_isse"] = df["isse"].apply(_classificar)
 
     return df
