@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISSE — Plataforma de Análise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080C12;--surface:#0D1420;--surface2:#111927;
+  --border:#1C2A3F;--border-hi:#2A3F5A;
+  --blue:#2563EB;--blue-dim:#1D4ED8;--blue-lo:#1E3A5F;--blue-light:#60A5FA;
+  --text:#E2E8F0;--text-dim:#64748B;--text-mid:#94A3B8;
+  --cat-nula:#1E3A5F;--cat-baixa:#2563EB;--cat-media:#F59E0B;--cat-alta:#EF4444;
+}
+body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+body::before{content:"";display:block;height:2px;background:var(--blue);position:fixed;top:0;left:0;right:0;z-index:100}
+
+/* Layout */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* Sidebar */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:32px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{padding:0 20px 28px;border-bottom:1px solid var(--border)}
+.logo-name{font-size:20px;font-weight:600;letter-spacing:-0.01em}
+.logo-sub{font-size:11px;color:var(--text-dim);margin-top:2px}
+.logo-badge{display:inline-block;margin-top:8px;font-size:10px;background:var(--blue-lo);color:var(--blue-light);padding:2px 8px;border-radius:10px;font-weight:500}
+nav{padding:16px 0;flex:1}
+.nav-section{font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:0.08em;text-transform:uppercase;padding:8px 20px 4px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:8px 20px;font-size:13px;color:var(--text-mid);cursor:pointer;transition:color 0.1s,background 0.1s;border:none;background:none;width:100%;text-align:left}
+.nav-link svg{flex-shrink:0;opacity:0.6}
+.nav-link:hover,.nav-link.active{color:var(--text);background:rgba(37,99,235,0.08)}
+.nav-link.active{color:var(--blue-light)}
+.nav-link.active svg{opacity:1}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim)}
+.status-row{display:flex;align-items:center;gap:6px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2.5s ease-in-out infinite;flex-shrink:0}
+.dot.offline{background:#EF4444;animation:none}
+.dot.online{background:#22C55E}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* Main */
+.main{overflow-y:auto}
+.page{display:none;padding:40px 36px 60px;max-width:1100px}
+.page.active{display:block}
+
+/* Page header */
+.page-title{font-size:22px;font-weight:600;letter-spacing:-0.01em;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text-dim);margin-bottom:32px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:20px}
+.card-title{font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:16px}
+
+/* Stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px}
+.stat-val{font-size:26px;font-weight:600;letter-spacing:-0.02em;margin-bottom:2px}
+.stat-label{font-size:11px;color:var(--text-dim)}
+.stat-card.nula .stat-val{color:var(--blue-light)}
+.stat-card.baixa .stat-val{color:var(--blue)}
+.stat-card.media .stat-val{color:#F59E0B}
+.stat-card.alta .stat-val{color:#EF4444}
+
+/* Upload */
+.upload-area{border:1px solid var(--border);border-radius:6px;background:var(--surface);margin-bottom:12px;transition:border-color 0.15s}
+.upload-area.drag{border-color:var(--blue)}
+.drop-zone{padding:36px;text-align:center;cursor:pointer}
+.drop-icon{width:32px;height:32px;margin:0 auto 14px;opacity:0.2}
+.drop-text{color:var(--text-dim);font-size:13px;margin-bottom:16px}
+input[type="file"]{display:none}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:4px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border:none;transition:background 0.12s,opacity 0.12s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-dim)}
+.btn-primary:disabled{opacity:0.4;cursor:default}
+.btn-ghost{background:transparent;color:var(--text-mid);border:1px solid var(--border-hi)}
+.btn-ghost:hover{border-color:var(--blue);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.file-bar{display:none;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--border)}
+.file-bar.visible{display:flex}
+.file-icon{color:var(--blue);flex-shrink:0}
+.file-name{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-size{font-size:12px;color:var(--text-dim);flex-shrink:0}
+.actions{display:flex;align-items:center;gap:12px;margin-top:12px;margin-bottom:28px}
+.feedback{font-size:12px}
+.feedback.ok{color:#22C55E}
+.feedback.error{color:#EF4444}
+.feedback.processing{color:var(--text-dim)}
+
+/* Tabela */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--surface2);position:sticky;top:0;z-index:1}
+th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text-dim);letter-spacing:0.06em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 14px;border-bottom:1px solid var(--border);color:var(--text-mid);white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(37,99,235,0.04);color:var(--text)}
+td.id-col{color:var(--text);font-weight:500}
+.isse-cell{display:flex;align-items:center;gap:10px;min-width:160px}
+.isse-val{font-variant-numeric:tabular-nums;font-weight:600;color:var(--text);min-width:40px;text-align:right;font-size:12px}
+.bar-track{flex:1;height:3px;background:var(--border-hi);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(.25,.46,.45,.94)}
+.cat-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em}
+.cat-nula{background:rgba(30,58,95,0.5);color:#60A5FA}
+.cat-baixa{background:rgba(37,99,235,0.2);color:#93C5FD}
+.cat-media{background:rgba(245,158,11,0.15);color:#FCD34D}
+.cat-alta{background:rgba(239,68,68,0.15);color:#FCA5A5}
+
+/* Gráfico de barras */
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bc-row{display:grid;grid-template-columns:140px 1fr 40px;align-items:center;gap:12px;font-size:12px}
+.bc-label{color:var(--text-mid);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bc-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.bc-fill{height:100%;border-radius:3px;transition:width 0.7s cubic-bezier(.25,.46,.45,.94)}
+.bc-val{color:var(--text);font-variant-numeric:tabular-nums;text-align:right;font-size:11px}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:24px}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Comparação */
+.compare-form{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.input-text{background:var(--surface2);border:1px solid var(--border-hi);border-radius:4px;padding:8px 12px;font-size:13px;color:var(--text);font-family:inherit;outline:none;transition:border-color 0.15s;flex:1;min-width:200px}
+.input-text:focus{border-color:var(--blue)}
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.compare-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:20px}
+.compare-name{font-size:15px;font-weight:600;margin-bottom:4px}
+.compare-meta{font-size:11px;color:var(--text-dim);margin-bottom:16px}
+.compare-isse{font-size:32px;font-weight:600;letter-spacing:-0.02em;margin-bottom:4px}
+.compare-range{font-size:11px;color:var(--text-dim);margin-bottom:16px}
+
+/* Histórico */
+.hist-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.hist-card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:16px;cursor:pointer;transition:border-color 0.15s}
+.hist-card:hover{border-color:var(--blue)}
+.hist-name{font-size:14px;font-weight:600;margin-bottom:2px}
+.hist-meta{font-size:11px;color:var(--text-dim);margin-bottom:10px}
+.hist-stats{display:flex;gap:16px}
+.hist-stat{font-size:11px;color:var(--text-dim)}
+.hist-stat strong{color:var(--text);font-size:13px;display:block}
+
+/* Dois painéis lado a lado */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* Mapa placeholder */
+.mapa-area{background:var(--surface2);border:1px solid var(--border);border-radius:6px;min-height:280px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text-dim);font-size:13px;text-align:center;padding:20px}
+.mapa-area svg{opacity:0.15;width:48px;height:48px}
+
+/* Empty state */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;color:var(--text-dim);gap:12px}
+.empty svg{opacity:0.15;width:40px;height:40px}
+.empty p{font-size:13px}
+
+/* Footer */
+.page-footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim)}
+.page-footer a{color:var(--blue);text-decoration:none}
+
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-name">ISSE</div>
+      <div class="logo-sub">Segregação Socioespacial</div>
+      <span class="logo-badge">UEMG Passos · Extensão</span>
+    </div>
+
+    <nav>
+      <div class="nav-section">Análise</div>
+      <button class="nav-link active" onclick="showPage('upload')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Upload de Planilha
+      </button>
+      <button class="nav-link" onclick="showPage('dashboard')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+
+      <div class="nav-section" style="margin-top:8px">Municípios</div>
+      <button class="nav-link" onclick="showPage('municipios')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke-linecap="round"/></svg>
+        Municípios Cadastrados
+      </button>
+      <button class="nav-link" onclick="showPage('comparar')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6" stroke-linecap="round"/></svg>
+        Comparar Municípios
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-row">
+        <div class="dot" id="dotStatus"></div>
+        <span id="txtStatus">verificando...</span>
+      </div>
+      <div style="margin-top:6px">Bastos Filho et al., 2019</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── UPLOAD ── -->
+    <div class="page active" id="page-upload">
+      <div class="page-title">Upload de Dados</div>
+      <div class="page-sub">Envie a planilha preenchida com os indicadores do município.</div>
+
+      <div class="upload-area" id="uploadArea">
+        <div class="drop-zone" id="dropZone">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 16V4m0 0L8 8m4-4l4 4M6 20h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <p class="drop-text">Arraste a planilha aqui ou selecione um arquivo</p>
+          <label class="btn btn-ghost" for="fileInput">Selecionar .xlsx</label>
+          <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
+        <div class="file-bar" id="fileBar">
+          <svg class="file-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-7-7z" stroke-linecap="round" stroke-linejoin="round"/><polyline points="13 2 13 9 20 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="file-name" id="fileName"></span>
+          <span class="file-size" id="fileSize"></span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="processBtn" disabled>Processar</button>
+        <button class="btn btn-ghost btn-sm" id="clearBtn" style="display:none">Limpar</button>
+        <span class="feedback" id="feedback"></span>
+      </div>
+
+      <div id="resultSection" style="display:none">
+        <div class="stat-grid" id="statGrid"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">Distribuição por Categoria</div>
+            <div class="donut-wrap">
+              <canvas id="donutCanvas" width="120" height="120"></canvas>
+              <div class="donut-legend" id="donutLegend"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">ISSE por Setor</div>
+            <div class="bar-chart" id="barChart"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div class="card-title" style="margin-bottom:0">Tabela de Resultados</div>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('dashboard')">Ver dashboard completo →</button>
+          </div>
+          <div class="table-wrap"><table id="resultsTable"></table></div>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Cálculo conforme Bastos Filho et al. (2019) — 17 indicadores, 3 categorias.</span>
+        <a href="http://127.0.0.1:8000/docs" target="_blank">API Docs</a>
+      </div>
+    </div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Visão geral da última análise processada.</div>
+      <div id="dashContent">
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <p>Nenhuma análise carregada ainda.<br>Faça um upload para ver o dashboard.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MUNICÍPIOS ── -->
+    <div class="page" id="page-municipios">
+      <div class="page-title">Municípios Cadastrados</div>
+      <div class="page-sub">Histórico de análises salvas no banco de dados.</div>
+      <div id="municList">
+        <div class="empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke-linecap="round"/></svg>
+          <p>Carregando...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMPARAR ── -->
+    <div class="page" id="page-comparar">
+      <div class="page-title">Comparar Municípios</div>
+      <div class="page-sub">Insira os nomes dos municípios separados por vírgula.</div>
+      <div class="compare-form">
+        <input class="input-text" id="compareInput" placeholder="Passos, Três Corações, Alfenas...">
+        <button class="btn btn-primary" onclick="runCompare()">Comparar</button>
+      </div>
+      <div id="compareResult"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+// ── Estado global ──
+let lastData = null;
+
+// ── Navegação ──
+function showPage(id) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
+  document.getElementById("page-" + id).classList.add("active");
+  document.querySelectorAll(".nav-link").forEach(l => {
+    if (l.getAttribute("onclick")?.includes("'" + id + "'")) l.classList.add("active");
+  });
+  if (id === "municipios") loadMunicipios();
+  if (id === "dashboard" && lastData) renderDashboard(lastData);
+}
+
+// ── Utilitários ──
+function esc(v) {
+  const d = document.createElement("div"); d.textContent = v ?? ""; return d.innerHTML;
+}
+function fmtSize(b) {
+  return b < 1048576 ? (b/1024).toFixed(1)+" KB" : (b/1048576).toFixed(1)+" MB";
+}
+function catClass(cat) {
+  return ({Nula:"nula",Baixa:"baixa","Média":"media",Alta:"alta"})[cat] || "nula";
+}
+function catColor(cat) {
+  return ({Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"})[cat] || "#1E3A5F";
+}
+function setFeedback(msg, type="") {
+  const el = document.getElementById("feedback");
+  el.textContent = msg;
+  el.className = "feedback" + (type ? " "+type : "");
+}
+
+// ── Upload ──
+const uploadArea = document.getElementById("uploadArea");
+const dropZone   = document.getElementById("dropZone");
+const fileInput  = document.getElementById("fileInput");
+const fileBar    = document.getElementById("fileBar");
+const processBtn = document.getElementById("processBtn");
+const clearBtn   = document.getElementById("clearBtn");
+let activeFile   = null;
+
+function setFile(file) {
+  activeFile = file;
+  document.getElementById("fileName").textContent = file.name;
+  document.getElementById("fileSize").textContent = fmtSize(file.size);
+  fileBar.classList.add("visible");
+  processBtn.disabled = false;
+  clearBtn.style.display = "inline-flex";
+  setFeedback("");
+}
+
+fileInput.addEventListener("change", e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+dropZone.addEventListener("dragover",  e => { e.preventDefault(); uploadArea.classList.add("drag"); });
+dropZone.addEventListener("dragleave", ()  => uploadArea.classList.remove("drag"));
+dropZone.addEventListener("drop", e => {
+  e.preventDefault(); uploadArea.classList.remove("drag");
+  if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+});
+
+clearBtn.addEventListener("click", () => {
+  activeFile = null; fileInput.value = "";
+  fileBar.classList.remove("visible");
+  processBtn.disabled = true; clearBtn.style.display = "none";
+  setFeedback(""); document.getElementById("resultSection").style.display = "none";
+});
+
+processBtn.addEventListener("click", async () => {
+  if (!activeFile) return;
+  processBtn.disabled = true;
+  document.getElementById("resultSection").style.display = "none";
+  setFeedback("Processando…", "processing");
+
+  const form = new FormData();
+  form.append("file", activeFile);
+  try {
+    const res  = await fetch(API + "/upload", { method: "POST", body: form });
+    const json = await res.json();
+    if (!res.ok || json.errors?.length) {
+      setFeedback(json.errors?.join(" · ") || "Erro desconhecido.", "error");
+      return;
+    }
+    lastData = json;
+    renderUploadResult(json);
+    setFeedback(`${json.row_count} setores processados e salvos — ${json.municipio}.`, "ok");
+  } catch {
+    setFeedback("Sem conexão com o backend (127.0.0.1:8000).", "error");
+  } finally {
+    processBtn.disabled = false;
+  }
+});
+
+// ── Render upload ──
+function renderUploadResult(json) {
+  const data = json.data;
+  const cats = {Nula:0,Baixa:0,"Média":0,Alta:0};
+  const issees = data.map(r => parseFloat(r.isse)||0);
+  data.forEach(r => { const c = r.categoria_isse; if (c in cats) cats[c]++; });
+
+  // Stats
+  const medio = (issees.reduce((a,b)=>a+b,0)/issees.length).toFixed(4);
+  document.getElementById("statGrid").innerHTML =
+    statCard("ISSE Médio",  medio,     "")      +
+    statCard("Nula",        cats.Nula, "nula")  +
+    statCard("Baixa",       cats.Baixa,"baixa") +
+    statCard("Média/Alta",  cats["Média"]+cats.Alta, "alta");
+
+  renderDonut(cats);
+  renderBarChart(data);
+  renderTable(data, json.columns);
+  document.getElementById("resultSection").style.display = "block";
+}
+
+function statCard(label, val, cls) {
+  return `<div class="stat-card ${cls}"><div class="stat-val">${esc(val)}</div><div class="stat-label">${esc(label)}</div></div>`;
+}
+
+function renderDonut(cats) {
+  const canvas = document.getElementById("donutCanvas");
+  const ctx    = canvas.getContext("2d");
+  const total  = Object.values(cats).reduce((a,b)=>a+b,0) || 1;
+  const colors = {Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
+  const cx=60,cy=60,r=50,r2=32;
+  ctx.clearRect(0,0,120,120);
+  let angle = -Math.PI/2;
+  Object.entries(cats).forEach(([cat,val]) => {
+    const slice = (val/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,angle,angle+slice);
+    ctx.fillStyle = colors[cat]; ctx.fill();
+    angle += slice;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,r2,0,Math.PI*2);
+  ctx.fillStyle = "#0D1420"; ctx.fill();
+  let legend = "";
+  Object.entries(cats).forEach(([cat,val]) => {
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat]}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px;font-variant-numeric:tabular-nums">${val}</span></div>`;
+  });
+  document.getElementById("donutLegend").innerHTML = legend;
+}
+
+function renderBarChart(data) {
+  const sorted = [...data].sort((a,b) => (parseFloat(b.isse)||0) - (parseFloat(a.isse)||0)).slice(0,12);
+  const max    = Math.max(...sorted.map(r=>parseFloat(r.isse)||0)) || 1;
+  let html = "";
+  sorted.forEach(r => {
+    const v   = parseFloat(r.isse)||0;
+    const pct = (v/max*100).toFixed(1);
+    const col = catColor(r.categoria_isse);
+    html += `<div class="bc-row">
+      <div class="bc-label" title="${esc(r.setor)}">${esc(r.setor)}</div>
+      <div class="bc-track"><div class="bc-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="bc-val">${v.toFixed(3)}</div>
+    </div>`;
+  });
+  document.getElementById("barChart").innerHTML = html;
+}
+
+function renderTable(data, cols) {
+  const ID = ["setor","municipio"];
+  const NUM_COLS = cols.filter(c => !ID.includes(c) && c !== "isse" && c !== "categoria_isse");
+  const SHOW = ["setor","municipio","isse","categoria_isse",...NUM_COLS.slice(0,6)];
+  const visible = SHOW.filter(c => cols.includes(c));
+
+  let h = "<thead><tr>" + visible.map(c => `<th>${esc(c)}</th>`).join("") + "</tr></thead><tbody>";
+  data.forEach(row => {
+    h += "<tr>";
+    visible.forEach(c => {
+      if (c === "isse") {
+        const n = parseFloat(row[c])||0;
+        h += `<td><div class="isse-cell">
+          <span class="isse-val">${(n).toFixed(4)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${(n*100).toFixed(1)}%;background:${catColor(row.categoria_isse)}"></div></div>
+        </div></td>`;
+      } else if (c === "categoria_isse") {
+        const cl = catClass(row[c]);
+        h += `<td><span class="cat-badge cat-${cl}">${esc(row[c])}</span></td>`;
+      } else {
+        const cls = ID.includes(c) ? ' class="id-col"' : "";
+        h += `<td${cls}>${esc(row[c])}</td>`;
+      }
+    });
+    h += "</tr>";
+  });
+  h += "</tbody>";
+  document.getElementById("resultsTable").innerHTML = h;
+}
+
+// ── Dashboard ──
+function renderDashboard(json) {
+  const data = json.data;
+  const cats = {Nula:0,Baixa:0,"Média":0,Alta:0};
+  data.forEach(r => { const c = r.categoria_isse; if (c in cats) cats[c]++; });
+  const issees = data.map(r => parseFloat(r.isse)||0);
+  const medio  = (issees.reduce((a,b)=>a+b,0)/issees.length).toFixed(4);
+
+  document.getElementById("dashContent").innerHTML = `
+    <div class="stat-grid" style="margin-bottom:20px">
+      ${statCard("Município", json.municipio, "")}
+      ${statCard("Setores", json.row_count, "")}
+      ${statCard("ISSE Médio", medio, "")}
+      ${statCard("Alta Segregação", cats.Alta + cats["Média"], "alta")}
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Distribuição por Categoria</div>
+        <div class="donut-wrap">
+          <canvas id="dashDonut" width="120" height="120"></canvas>
+          <div id="dashLegend" class="donut-legend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Ranking — Top Segregados</div>
+        <div id="dashBar" class="bar-chart"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Mapa Coroplético</div>
+      <div class="mapa-area">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11l19-9-9 19-2-8-8-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <p>Mapa interativo disponível quando os dados de<br>geometria dos setores (GeoJSON) forem integrados.</p>
+        <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="window.open('http://127.0.0.1:8000/docs','_blank')">Ver API de dados geográficos →</button>
+      </div>
+    </div>`;
+
+  const colors = {Nula:"#1E3A5F",Baixa:"#2563EB","Média":"#F59E0B",Alta:"#EF4444"};
+  const canvas = document.getElementById("dashDonut");
+  const ctx    = canvas.getContext("2d");
+  const total  = Object.values(cats).reduce((a,b)=>a+b,0)||1;
+  let angle    = -Math.PI/2;
+  Object.entries(cats).forEach(([cat,val]) => {
+    const slice = (val/total)*Math.PI*2;
+    ctx.beginPath(); ctx.moveTo(60,60); ctx.arc(60,60,50,angle,angle+slice);
+    ctx.fillStyle = colors[cat]; ctx.fill(); angle += slice;
+  });
+  ctx.beginPath(); ctx.arc(60,60,32,0,Math.PI*2); ctx.fillStyle="#0D1420"; ctx.fill();
+
+  let legend = "";
+  Object.entries(cats).forEach(([cat,val]) => {
+    legend += `<div class="legend-item"><div class="legend-dot" style="background:${colors[cat]}"></div><span style="color:var(--text-mid)">${cat}</span><span style="color:var(--text);margin-left:auto;padding-left:12px">${val}</span></div>`;
+  });
+  document.getElementById("dashLegend").innerHTML = legend;
+
+  const sorted = [...data].sort((a,b)=>(parseFloat(b.isse)||0)-(parseFloat(a.isse)||0)).slice(0,10);
+  const max    = Math.max(...sorted.map(r=>parseFloat(r.isse)||0))||1;
+  let bar = "";
+  sorted.forEach(r => {
+    const v=parseFloat(r.isse)||0, pct=(v/max*100).toFixed(1), col=catColor(r.categoria_isse);
+    bar += `<div class="bc-row"><div class="bc-label" title="${esc(r.setor)}">${esc(r.setor)}</div><div class="bc-track"><div class="bc-fill" style="width:${pct}%;background:${col}"></div></div><div class="bc-val">${v.toFixed(3)}</div></div>`;
+  });
+  document.getElementById("dashBar").innerHTML = bar;
+}
+
+// ── Municípios ──
+async function loadMunicipios() {
+  try {
+    const res  = await fetch(API + "/municipios");
+    const json = await res.json();
+    const list = json.municipios || [];
+    if (!list.length) {
+      document.getElementById("municList").innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20" stroke-linecap="round"/></svg><p>Nenhum município cadastrado ainda.</p></div>`;
+      return;
+    }
+    let html = '<div class="hist-grid">';
+    list.forEach(m => {
+      html += `<div class="hist-card" onclick="loadMunicDetalhe('${esc(m.nome)}')">
+        <div class="hist-name">${esc(m.nome)}${m.uf ? " — "+esc(m.uf) : ""}</div>
+        <div class="hist-meta">Última análise: ${m.ultima_analise ? new Date(m.ultima_analise).toLocaleDateString("pt-BR") : "—"}</div>
+        <div class="hist-stats">
+          <div class="hist-stat"><strong>${m.num_analises}</strong>análise(s)</div>
+        </div>
+      </div>`;
+    });
+    html += "</div>";
+    document.getElementById("municList").innerHTML = html;
+  } catch {
+    document.getElementById("municList").innerHTML = `<div class="empty"><p>Erro ao carregar municípios.</p></div>`;
+  }
+}
+
+async function loadMunicDetalhe(nome) {
+  const res  = await fetch(API + "/municipios/" + encodeURIComponent(nome));
+  const json = await res.json();
+  if (json.errors) { alert(json.errors.join("\n")); return; }
+  lastData = { municipio: json.municipio, row_count: json.setores.length,
+    data: json.setores.map(s => ({...s, setor: s.nome, categoria_isse: s.categoria})),
+    columns: Object.keys(json.setores[0]||{}) };
+  showPage("dashboard");
+}
+
+// ── Comparar ──
+async function runCompare() {
+  const input = document.getElementById("compareInput").value.trim();
+  if (!input) return;
+  const res  = await fetch(API + "/comparar?municipios=" + encodeURIComponent(input));
+  const json = await res.json();
+  if (json.errors) {
+    document.getElementById("compareResult").innerHTML = `<p style="color:#EF4444;font-size:13px">${esc(json.errors.join(" · "))}</p>`;
+    return;
+  }
+  const list = json.comparacao || [];
+  let html = '<div class="compare-grid">';
+  list.forEach(m => {
+    const dist = m.distribuicao || {};
+    html += `<div class="compare-card">
+      <div class="compare-name">${esc(m.municipio)}</div>
+      <div class="compare-meta">${m.num_setores} setores analisados</div>
+      <div class="compare-isse" style="color:${m.isse_medio > 0.5191 ? '#EF4444' : '#60A5FA'}">${(m.isse_medio||0).toFixed(4)}</div>
+      <div class="compare-range">min ${(m.isse_min||0).toFixed(4)} · max ${(m.isse_max||0).toFixed(4)}</div>
+      <div class="bar-chart">
+        ${Object.entries(dist).map(([cat,n]) => `
+          <div class="bc-row" style="grid-template-columns:70px 1fr 30px">
+            <div class="bc-label">${esc(cat)}</div>
+            <div class="bc-track"><div class="bc-fill" style="width:${m.num_setores?((n/m.num_setores)*100).toFixed(0):0}%;background:${catColor(cat)}"></div></div>
+            <div class="bc-val">${n}</div>
+          </div>`).join("")}
+      </div>
+    </div>`;
+  });
+  html += "</div>";
+  document.getElementById("compareResult").innerHTML = html;
+}
+
+// ── Status ──
+fetch(API + "/")
+  .then(r => {
+    const dot = document.getElementById("dotStatus");
+    const txt = document.getElementById("txtStatus");
+    if (r.ok) { dot.className = "dot online"; txt.textContent = "Backend conectado"; }
+    else       { dot.className = "dot offline"; txt.textContent = "Backend com erro"; }
+  })
+  .catch(() => {
+    document.getElementById("dotStatus").className = "dot offline";
+    document.getElementById("txtStatus").textContent = "Backend offline";
+  });
+</script>
+</body>
+</html>
